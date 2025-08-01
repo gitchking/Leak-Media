@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, addDoc, serverTimestamp, getFirestore } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../lib/firebase';
 import { Plus } from 'lucide-react';
@@ -27,6 +27,36 @@ export default function SubmissionForm() {
     link: '',
     category: 'software' as 'software' | 'plugin' | 'script'
   });
+  // Removed file upload flow; we'll rely on a direct URL only.
+  // Removed file upload state
+
+  async function uploadToCatbox(file: File): Promise<string> {
+    // Catbox requires multipart/form-data; ensure CORS-safe path from the browser.
+    const formData = new FormData();
+    formData.append('reqtype', 'fileupload');
+    formData.append('fileToUpload', file);
+
+    let res: Response;
+    try {
+      res = await fetch('https://catbox.moe/user/api.php', {
+        method: 'POST',
+        body: formData,
+        // mode: 'cors' is default; no custom headers (let browser set boundary)
+      });
+    } catch (networkErr: any) {
+      // Network/CORS level failure
+      throw new Error('Network error while uploading to Catbox. This is often a CORS or connectivity issue.');
+    }
+
+    const text = await res.text();
+    if (!res.ok || !text.startsWith('http')) {
+      // Provide more descriptive diagnostics inline for easier debugging
+      throw new Error(
+        `Catbox upload failed${text ? `: ${text.substring(0, 120)}` : ''}`
+      );
+    }
+    return text.trim();
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +77,9 @@ export default function SubmissionForm() {
       return;
     }
     const safeCategory = (['software','plugin','script'] as const).includes(category) ? category : 'software';
+
+    // Only use provided icon URL (no uploads). Optional field.
+    const finalIconUrl = (icon || '').trim();
   
     setLoading(true);
     try {
@@ -55,7 +88,7 @@ export default function SubmissionForm() {
         description: description.trim(),
         link: link.trim(),
         category: safeCategory,
-        icon: icon?.trim() || '',
+        icon: finalIconUrl,
         approved: false,
         userId: user.uid,
         userEmail: user.email || '',
@@ -63,7 +96,6 @@ export default function SubmissionForm() {
         createdAt: serverTimestamp(),
       };
   
-      // Use collection path via imported db
       await addDoc(collection(db, 'submissions'), payload);
   
       // Reset form
@@ -94,7 +126,19 @@ export default function SubmissionForm() {
   };
 
   if (!user) {
-    return null;
+    return (
+      <div className="submission-form-container">
+        <div className="bg-dark-900/80 backdrop-blur-sm border border-dark-700/50 rounded-2xl p-6 shadow-xl text-center">
+          <p className="text-white mb-4">You must be signed in to submit a resource.</p>
+          <a
+            href="/dashboard"
+            className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-medium rounded-xl transition-all duration-300 hover:from-primary-500 hover:to-primary-600 hover:shadow-lg hover:shadow-primary-500/25 hover:scale-105"
+          >
+            Go to Sign In
+          </a>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -164,8 +208,11 @@ export default function SubmissionForm() {
               value={formData.icon}
               onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
               className="form-input w-full bg-dark-700/50 border border-dark-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-300"
-              placeholder="https://example.com/icon.png"
+              placeholder="https://files.catbox.moe/xxxxxx.png"
             />
+            <p className="text-xs text-white/60 mt-1">
+              Tip: Host your image on Catbox and paste the direct file URL (e.g. https://files.catbox.moe/...). No upload needed here.
+            </p>
           </div>
 
           <div className="form-group">

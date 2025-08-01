@@ -1,5 +1,19 @@
 {
   "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist"]
+  "include": [
+    ".astro/types.d.ts",
+    "src/**/*.astro",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    ".astro",
+    ".vercel",
+    ".output",
+    ".netlify",
+    ".svelte-kit",
+    "src/pages/settings.astro"
+  ]
 }
