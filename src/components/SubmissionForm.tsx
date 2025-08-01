@@ -1,11 +1,23 @@
-import { useState } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { collection, addDoc, serverTimestamp, getFirestore } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../lib/firebase';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 export default function SubmissionForm() {
   const [user] = useAuthState(auth);
+  const [dbReady, setDbReady] = useState(false);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+
+  // Ensure Firestore instance is usable (handles SSR and analytics-only envs)
+  useEffect(() => {
+    try {
+      // Touch getFirestore(app) indirectly via imported db; if it throws, we'll catch.
+      if (db) setDbReady(true);
+    } catch (e) {
+      setDbReady(false);
+    }
+  }, [db]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -18,15 +30,20 @@ export default function SubmissionForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrMsg(null);
     if (!user) {
-      alert('You must be signed in to submit.');
+      setErrMsg('You must be signed in to submit.');
+      return;
+    }
+    if (!dbReady || !db) {
+      setErrMsg('Database is not ready. Please refresh and try again.');
       return;
     }
   
     // Basic client-side validation
     const { name, description, link, category, icon } = formData;
     if (!name.trim() || !description.trim() || !link.trim()) {
-      alert('Please fill all required fields.');
+      setErrMsg('Please fill all required fields.');
       return;
     }
     const safeCategory = (['software','plugin','script'] as const).includes(category) ? category : 'software';
@@ -46,6 +63,7 @@ export default function SubmissionForm() {
         createdAt: serverTimestamp(),
       };
   
+      // Use collection path via imported db
       await addDoc(collection(db, 'submissions'), payload);
   
       // Reset form
@@ -57,16 +75,18 @@ export default function SubmissionForm() {
         category: 'software'
       });
       setIsOpen(false);
-  
       alert('Submission sent for review!');
     } catch (error: any) {
       console.error('Error submitting:', error);
-      const msg = typeof error?.message === 'string' ? error.message : 'Unknown error';
-      // Surface common Firestore issues clearly
-      if (msg.includes('permission-denied')) {
-        alert('Submission failed: permission denied. Check Firestore rules to allow authenticated users to write their own submissions.');
+      const msg: string = typeof error?.message === 'string' ? error.message : 'Unknown error';
+      if (msg.toLowerCase().includes('permission') || msg.includes('permission-denied')) {
+        setErrMsg('Submission failed: permission denied. Check Firestore rules and that you are signed in.');
+      } else if (msg.toLowerCase().includes('missing or insufficient permissions')) {
+        setErrMsg('Missing or insufficient permissions. Verify Firestore security rules.');
+      } else if (msg.toLowerCase().includes('failed-precondition') || msg.toLowerCase().includes('index')) {
+        setErrMsg('Firestore index/precondition issue. Ensure createdAt is set and indexes are not required for this query.');
       } else {
-        alert('Error submitting. Please try again.');
+        setErrMsg('Error submitting. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -90,6 +110,16 @@ export default function SubmissionForm() {
         </button>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6 bg-dark-900/80 backdrop-blur-sm border border-dark-700/50 rounded-2xl p-6 shadow-xl">
+          {errMsg && (
+            <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+              {errMsg}
+            </div>
+          )}
+          {!dbReady && (
+            <div className="text-sm text-yellow-300 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+              Connecting to database… please wait or refresh.
+            </div>
+          )}
           <div className="form-group">
             <label className="block text-white mb-2 text-sm font-medium">Name *</label>
             <input
