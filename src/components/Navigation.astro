@@ -1,0 +1,160 @@
+---
+import AuthButton from './AuthButton.tsx';
+import { Plus } from 'lucide-react';
+---
+
+<nav class="nav-container">
+  <div class="nav-content">
+    <div class="nav-left">
+      <a href="/" class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8">
+            <path d="M12 2L2 7V12C2 16.5 4.23 20.68 7.62 23L12 21L16.38 23C19.77 20.68 22 16.5 22 12V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 12L7 7L9 5L12 8L15 5L17 7L12 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 12L7 17L9 19L12 16L15 19L17 17L12 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="logo-text">Leak Media</span>
+      </a>
+    </div>
+
+    <div class="nav-center">
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <div class="dropdown">
+          <button class="nav-link dropdown-trigger">
+            Categories
+            <svg class="w-4 h-4 ml-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="dropdown-menu">
+            <a href="/software" class="dropdown-item">Software</a>
+            <a href="/plugins" class="dropdown-item">Plugins</a>
+            <a href="/scripts" class="dropdown-item">Scripts</a>
+          </div>
+        </div>
+        <a href="/community" class="nav-link">Community</a>
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+      </div>
+    </div>
+
+    <div class="nav-right flex items-center gap-4">
+      <a href="/submit" class="submit-trigger-btn group">
+        <Plus size={20} />
+        <span>Submit</span>
+        <div class="btn-glow"></div>
+      </a>
+      <AuthButton client:load />
+    </div>
+  </div>
+</nav>
+
+<style>
+  .nav-container {
+    @apply fixed top-0 left-0 right-0 z-50 bg-dark-950/80 backdrop-blur-lg border-b border-dark-800/50;
+  }
+
+  .nav-content {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-20;
+  }
+
+  .nav-left {
+    @apply flex items-center flex-1;
+  }
+
+  .logo {
+    @apply flex items-center gap-3 text-white hover:text-primary-300 transition-colors duration-200;
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    @apply w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center;
+  }
+
+  .logo-text {
+    @apply text-2xl font-black;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+  }
+
+  .nav-center {
+    @apply hidden md:flex justify-center;
+  }
+
+  .nav-links {
+    @apply flex items-center gap-10;
+  }
+
+  .nav-link {
+    @apply text-slate-200 hover:text-white transition-all duration-300 text-lg font-bold flex items-center relative;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    text-decoration: none;
+    position: relative;
+  }
+
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: rgb(var(--primary-500)); /* theme-driven underline */
+    transition: width 0.3s ease;
+  }
+
+  .nav-link:hover::after {
+    width: 100%;
+  }
+
+  .nav-link:hover {
+    transform: translateY(-1px);
+    text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+
+  .dropdown {
+    @apply relative;
+  }
+
+  .dropdown-trigger {
+    @apply cursor-pointer bg-transparent border-none;
+  }
+
+  .dropdown:hover .dropdown-menu {
+    @apply opacity-100 visible translate-y-0;
+  }
+
+  .dropdown:hover .dropdown-trigger svg {
+    @apply rotate-180;
+  }
+
+  .dropdown-menu {
+    @apply absolute top-full left-0 mt-2 w-56 bg-dark-950/90 backdrop-blur-md border border-dark-800/60 rounded-xl py-2 shadow-xl;
+    @apply opacity-0 invisible translate-y-2 transition-all duration-200;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  }
+
+  .dropdown-item {
+    @apply block px-5 py-3 text-base font-semibold text-slate-200 hover:text-white hover:bg-dark-700/50 transition-all duration-300 rounded-lg;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+
+  .nav-right {
+    @apply flex items-center justify-end flex-1;
+  }
+
+  /* Mobile menu (simplified for this example) */
+  @media (max-width: 768px) {
+    .nav-center {
+      @apply hidden;
+    }
+    
+    .logo-text {
+      @apply hidden;
+    }
+  }
+</style>

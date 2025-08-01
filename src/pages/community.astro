@@ -1,0 +1,421 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navigation from '../components/Navigation.astro';
+---
+
+<Layout title="Community - Zenith">
+  <Navigation />
+  
+  <main class="main-content">
+    <div class="container">
+      <div class="community-header">
+        <h1 class="page-title">Community Hub</h1>
+        <p class="page-description">Request resources, share ideas, and connect with other developers</p>
+      </div>
+
+      <div class="community-content">
+        <div class="create-post-section">
+          <div id="create-post-form"></div>
+        </div>
+
+        <div class="posts-section">
+          <h2 class="section-title">Recent Discussions</h2>
+          <div id="community-posts" class="posts-container">
+            <div class="loading-state">
+              <div class="animate-pulse space-y-4">
+                <div class="h-32 bg-dark-800 rounded-lg"></div>
+                <div class="h-32 bg-dark-800 rounded-lg"></div>
+                <div class="h-32 bg-dark-800 rounded-lg"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .main-content {
+    @apply pt-16 pb-20 min-h-screen;
+  }
+
+  .container {
+    @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .community-header {
+    @apply py-12 text-center;
+  }
+
+  .page-title {
+    @apply text-4xl font-bold text-white mb-4;
+  }
+
+  .page-description {
+    @apply text-xl text-gray-300 max-w-2xl mx-auto;
+  }
+
+  .community-content {
+    @apply space-y-12;
+  }
+
+  .create-post-section {
+    @apply mb-8;
+  }
+
+  .posts-section {
+    @apply space-y-6;
+  }
+
+  .section-title {
+    @apply text-2xl font-bold text-white mb-6;
+  }
+
+  .posts-container {
+    @apply space-y-6;
+  }
+
+  .loading-state {
+    @apply py-8;
+  }
+
+  .post-card {
+    @apply bg-dark-900/60 backdrop-blur-sm border border-dark-700/50 rounded-xl p-6 transition-all duration-300;
+    @apply hover:border-primary-500/50 hover:shadow-lg hover:shadow-primary-500/10;
+  }
+
+  .post-header {
+    @apply flex items-start justify-between mb-4;
+  }
+
+  .post-author {
+    @apply flex items-center gap-3;
+  }
+
+  .author-avatar {
+    @apply w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold;
+  }
+
+  .author-info {
+    @apply flex flex-col;
+  }
+
+  .author-name {
+    @apply text-white font-medium text-sm;
+  }
+
+  .post-date {
+    @apply text-gray-400 text-xs;
+  }
+
+  .post-title {
+    @apply text-xl font-semibold text-white mb-3;
+  }
+
+  .post-content {
+    @apply text-gray-300 text-sm leading-relaxed mb-4;
+  }
+
+  .post-actions {
+    @apply flex items-center gap-4 pt-4 border-t border-dark-700;
+  }
+
+  .reply-btn {
+    @apply text-sm text-gray-400 hover:text-primary-400 transition-colors duration-200;
+  }
+
+  .reply-count {
+    @apply text-sm text-gray-400;
+  }
+</style>
+
+<script>
+  import { collection, addDoc, getDocs, orderBy, query, serverTimestamp } from 'firebase/firestore';
+  import { onAuthStateChanged } from 'firebase/auth';
+  import { auth, db } from '../lib/firebase';
+
+  let currentUser = null;
+
+  // Create post form component
+  function CreatePostForm() {
+    const [user] = useAuthState(auth);
+    const [isOpen, setIsOpen] = useState(false);
+    const [formData, setFormData] = useState({
+      title: '',
+      content: '',
+      type: 'request'
+    });
+    const [loading, setLoading] = useState(false);
+
+    if (!user) {
+      return `
+        <div class="bg-dark-900/60 backdrop-blur-sm border border-dark-700/50 rounded-xl p-6 text-center">
+          <p class="text-gray-400 mb-4">Sign in to create community posts</p>
+        </div>
+      `;
+    }
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setLoading(true);
+      
+      try {
+        await addDoc(collection(db, 'community-posts'), {
+          ...formData,
+          userId: user.uid,
+          userEmail: user.email,
+          userName: user.displayName,
+          userAvatar: user.photoURL,
+          createdAt: serverTimestamp(),
+          replies: []
+        });
+
+        setFormData({ title: '', content: '', type: 'request' });
+        setIsOpen(false);
+        loadPosts(); // Refresh posts
+        
+      } catch (error) {
+        console.error('Error creating post:', error);
+        alert('Error creating post. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return `
+      <div class="create-post-container">
+        ${!isOpen ? `
+          <button onclick="toggleCreatePost()" class="create-post-btn">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            <span>Create New Post</span>
+          </button>
+        ` : `
+          <div class="create-post-form animate-slide-up">
+            <div class="form-header">
+              <h3>Create New Post</h3>
+              <button onclick="toggleCreatePost()" class="close-btn">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <form onsubmit="handlePostSubmit(event)" class="space-y-4">
+              <div class="form-group">
+                <label>Post Type</label>
+                <select name="type" class="form-input">
+                  <option value="request">Resource Request</option>
+                  <option value="discussion">General Discussion</option>
+                  <option value="help">Help & Support</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Title *</label>
+                <input type="text" name="title" required class="form-input" placeholder="What's your post about?" />
+              </div>
+              <div class="form-group">
+                <label>Content *</label>
+                <textarea name="content" required rows="4" class="form-input resize-none" placeholder="Share your thoughts, questions, or requests..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="button" onclick="toggleCreatePost()" class="btn-secondary">Cancel</button>
+                <button type="submit" class="btn-primary">Create Post</button>
+              </div>
+            </form>
+          </div>
+        `}
+      </div>
+    `;
+  }
+
+  // Load and display community posts
+  async function loadPosts() {
+    const postsContainer = document.getElementById('community-posts');
+    if (!postsContainer) return;
+
+    try {
+      const q = query(collection(db, 'community-posts'), orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const posts = [];
+      
+      querySnapshot.forEach((doc) => {
+        posts.push({ id: doc.id, ...doc.data() });
+      });
+
+      if (posts.length === 0) {
+        postsContainer.innerHTML = `
+          <div class="text-center py-12 text-gray-400">
+            <p>No posts yet. Be the first to start a discussion!</p>
+          </div>
+        `;
+        return;
+      }
+
+      postsContainer.innerHTML = posts.map(post => `
+        <div class="post-card">
+          <div class="post-header">
+            <div class="post-author">
+              <div class="author-avatar">
+                ${post.userName ? post.userName.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div class="author-info">
+                <div class="author-name">${post.userName || 'Anonymous'}</div>
+                <div class="post-date">${post.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}</div>
+              </div>
+            </div>
+            <span class="post-type-badge ${post.type || 'discussion'}">${post.type || 'discussion'}</span>
+          </div>
+          
+          <h3 class="post-title">${post.title}</h3>
+          <div class="post-content">${post.content}</div>
+          
+          <div class="post-actions">
+            <button class="reply-btn">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+              </svg>
+              Reply
+            </button>
+            <span class="reply-count">${(post.replies || []).length} replies</span>
+          </div>
+        </div>
+      `).join('');
+
+      // Add styles for post type badges
+      const style = document.createElement('style');
+      style.textContent = `
+        .post-type-badge {
+          @apply px-3 py-1 text-xs font-medium rounded-full uppercase tracking-wide;
+        }
+        .post-type-badge.request {
+          @apply bg-blue-500/20 text-blue-300 border border-blue-500/30;
+        }
+        .post-type-badge.discussion {
+          @apply bg-green-500/20 text-green-300 border border-green-500/30;
+        }
+        .post-type-badge.help {
+          @apply bg-orange-500/20 text-orange-300 border border-orange-500/30;
+        }
+        .create-post-btn {
+          @apply flex items-center gap-3 px-6 py-3 bg-primary-600 hover:bg-primary-500 text-white font-medium rounded-lg transition-all duration-200 hover:scale-105;
+        }
+        .create-post-form {
+          @apply bg-dark-900/60 backdrop-blur-sm border border-dark-700/50 rounded-xl p-6;
+        }
+      `;
+      if (!document.getElementById('community-styles')) {
+        style.id = 'community-styles';
+        document.head.appendChild(style);
+      }
+
+    } catch (error) {
+      console.error('Error loading posts:', error);
+      postsContainer.innerHTML = '<div class="text-center text-red-400 py-8">Error loading posts</div>';
+    }
+  }
+
+  // Global functions
+  let isCreatePostOpen = false;
+
+  window.toggleCreatePost = function() {
+    isCreatePostOpen = !isCreatePostOpen;
+    updateCreatePostForm();
+  };
+
+  window.handlePostSubmit = async function(event) {
+    event.preventDefault();
+    if (!currentUser) return;
+
+    const formData = new FormData(event.target);
+    const postData = {
+      title: formData.get('title'),
+      content: formData.get('content'),
+      type: formData.get('type'),
+      userId: currentUser.uid,
+      userEmail: currentUser.email,
+      userName: currentUser.displayName,
+      userAvatar: currentUser.photoURL,
+      createdAt: serverTimestamp(),
+      replies: []
+    };
+
+    try {
+      await addDoc(collection(db, 'community-posts'), postData);
+      isCreatePostOpen = false;
+      updateCreatePostForm();
+      await loadPosts();
+    } catch (error) {
+      console.error('Error creating post:', error);
+      alert('Error creating post. Please try again.');
+    }
+  };
+
+  function updateCreatePostForm() {
+    const container = document.getElementById('create-post-form');
+    if (!container) return;
+
+    if (!currentUser) {
+      container.innerHTML = `
+        <div class="bg-dark-900/60 backdrop-blur-sm border border-dark-700/50 rounded-xl p-6 text-center">
+          <p class="text-gray-400 mb-4">Sign in to create community posts</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = !isCreatePostOpen ? `
+      <button onclick="toggleCreatePost()" class="create-post-btn">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+        <span>Create New Post</span>
+      </button>
+    ` : `
+      <div class="create-post-form animate-slide-up">
+        <div class="form-header">
+          <h3>Create New Post</h3>
+          <button onclick="toggleCreatePost()" class="close-btn">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <form onsubmit="handlePostSubmit(event)" class="space-y-4">
+          <div class="form-group">
+            <label>Post Type</label>
+            <select name="type" class="form-input">
+              <option value="request">Resource Request</option>
+              <option value="discussion">General Discussion</option>
+              <option value="help">Help & Support</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Title *</label>
+            <input type="text" name="title" required class="form-input" placeholder="What's your post about?" />
+          </div>
+          <div class="form-group">
+            <label>Content *</label>
+            <textarea name="content" required rows="4" class="form-input resize-none" placeholder="Share your thoughts, questions, or requests..."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" onclick="toggleCreatePost()" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">Create Post</button>
+          </div>
+        </form>
+      </div>
+    `;
+  }
+
+  // Initialize
+  onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    updateCreatePostForm();
+  });
+
+  // Load posts on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    loadPosts();
+  });
+</script>
