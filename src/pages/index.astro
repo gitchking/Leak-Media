@@ -2,34 +2,43 @@
 import Layout from '../layouts/Layout.astro';
 import Navigation from '../components/Navigation.astro';
 import Card from '../components/Card.astro';
-import SubmissionForm from '../components/SubmissionForm.tsx';
 
-// Sample data - in a real app, this would come from Firestore
-const sampleCards = [
-  {
-    id: '1',
-    name: 'Visual Studio Code',
-    description: 'A powerful, lightweight code editor with extensive extension support and integrated terminal.',
-    icon: 'https://code.visualstudio.com/assets/images/code-stable.png',
-    link: 'https://code.visualstudio.com',
-    category: 'software' as const
-  },
-  {
-    id: '2',
-    name: 'Prettier',
-    description: 'An opinionated code formatter that supports many languages and integrates with most editors.',
-    icon: 'https://prettier.io/icon.png',
-    link: 'https://prettier.io',
-    category: 'plugin' as const
-  },
-  {
-    id: '3',
-    name: 'Auto Deploy Script',
-    description: 'Automated deployment script for static sites with built-in optimization and error handling.',
-    link: 'https://github.com/example/deploy-script',
-    category: 'script' as const
+// Fetch cards from API
+let cards = [];
+try {
+  const response = await fetch(`${Astro.url.origin}/api/cards`);
+  if (response.ok) {
+    cards = await response.json();
   }
-];
+} catch (error) {
+  console.error('Failed to fetch cards:', error);
+  // Fallback data
+  cards = [
+    {
+      id: '1',
+      name: 'Visual Studio Code',
+      description: 'A powerful, lightweight code editor with extensive extension support and integrated terminal.',
+      icon: 'https://code.visualstudio.com/assets/images/code-stable.png',
+      link: 'https://code.visualstudio.com',
+      category: 'software'
+    },
+    {
+      id: '2',
+      name: 'Prettier',
+      description: 'An opinionated code formatter that supports many languages and integrates with most editors.',
+      icon: 'https://prettier.io/icon.png',
+      link: 'https://prettier.io',
+      category: 'plugin'
+    },
+    {
+      id: '3',
+      name: 'Auto Deploy Script',
+      description: 'Automated deployment script for static sites with built-in optimization and error handling.',
+      link: 'https://github.com/example/deploy-script',
+      category: 'script'
+    }
+  ];
+}
 ---
 
 <Layout title="Leak Media - Premium Developer Resources">
@@ -51,7 +60,7 @@ const sampleCards = [
         </div>
         
         <div class="cards-grid">
-          {sampleCards.map(card => (
+          {cards.map(card => (
             <Card {...card} />
           ))}
         </div>

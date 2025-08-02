@@ -334,4 +334,81 @@ const { title, description = "Premium resource hub for developers" } = Astro.pro
     @apply opacity-50 cursor-not-allowed;
   }
 
+  /* Dev Tool Styles */
+  .dev-tool-overlay {
+    @apply fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50;
+  }
+
+  .dev-tool-panel {
+    @apply bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto;
+    animation: modalFadeIn 0.3s ease-out;
+  }
+
+  .dev-tool-header {
+    @apply flex items-center justify-between mb-6 pb-4 border-b border-dark-700;
+  }
+
+  .dev-tool-header h2 {
+    @apply text-xl font-semibold text-white;
+  }
+
+  .close-btn {
+    @apply p-2 text-gray-400 hover:text-white rounded-lg transition-colors duration-200;
+  }
+
+  .auth-form {
+    @apply space-y-4;
+  }
+
+  .dev-content {
+    @apply space-y-6;
+  }
+
+  .dev-actions {
+    @apply flex gap-3;
+  }
+
+  .add-form {
+    @apply bg-dark-800/50 rounded-xl p-6 space-y-4;
+  }
+
+  .cards-list {
+    @apply space-y-4;
+  }
+
+  .cards-list h3 {
+    @apply text-lg font-semibold text-white;
+  }
+
+  .cards-grid {
+    @apply space-y-2;
+  }
+
+  .card-item {
+    @apply flex items-center justify-between p-3 bg-dark-800/30 rounded-lg;
+  }
+
+  .card-info h4 {
+    @apply text-white font-medium;
+  }
+
+  .card-info .category {
+    @apply text-xs text-gray-400 uppercase;
+  }
+
+  .delete-btn {
+    @apply p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200;
+  }
+
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
 </style>
