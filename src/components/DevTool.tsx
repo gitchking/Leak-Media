@@ -30,6 +30,7 @@ export default function DevTool() {
     setLoading(true);
     
     try {
+      // Test authentication with a dummy request
       const response = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -37,7 +38,7 @@ export default function DevTool() {
           password, 
           name: 'test', 
           description: 'test', 
-          link: 'test', 
+          link: 'https://test.com', 
           category: 'software' 
         })
       });
@@ -122,140 +123,189 @@ export default function DevTool() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="dev-tool-trigger group"
+        className="dev-tool-trigger"
         title="Developer Tools"
       >
-        <Settings size={20} />
-        <span>Dev Tools</span>
+        <div className="dev-tool-icon">
+          <Settings size={18} />
+        </div>
+        <span className="dev-tool-text">Dev Tools</span>
+        <div className="dev-tool-glow"></div>
       </button>
     );
   }
 
   return (
     <div className="dev-tool-overlay">
-      <div className="dev-tool-panel">
-        <div className="dev-tool-header">
-          <h2>Developer Tools</h2>
-          <button onClick={() => setIsOpen(false)} className="close-btn">
-            <X size={20} />
-          </button>
-        </div>
-
+      <div className="dev-tool-container">
         {!isAuthenticated ? (
-          <form onSubmit={handleAuth} className="auth-form">
-            <div className="form-group">
-              <label>Developer Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="form-input"
-                placeholder="Enter developer password"
-              />
+          <div className="auth-container">
+            <div className="auth-header">
+              <div className="auth-icon">
+                <Settings size={24} />
+              </div>
+              <h2 className="auth-title">Developer Access</h2>
+              <button onClick={() => setIsOpen(false)} className="close-button">
+                <X size={20} />
+              </button>
             </div>
-            <button type="submit" disabled={loading} className="btn-primary">
-              {loading ? 'Authenticating...' : 'Authenticate'}
-            </button>
-          </form>
+            
+            <form onSubmit={handleAuth} className="auth-form">
+              <div className="form-field">
+                <label className="field-label">Developer Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="field-input"
+                  placeholder="Enter developer password"
+                />
+              </div>
+              <button type="submit" disabled={loading} className="auth-button">
+                {loading ? (
+                  <div className="loading-spinner"></div>
+                ) : (
+                  <>
+                    <Settings size={16} />
+                    <span>Authenticate</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
         ) : (
-          <div className="dev-content">
-            <div className="dev-actions">
-              <button
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="btn-primary"
-              >
-                <Plus size={16} />
-                Add New Card
+          <div className="dev-panel">
+            <div className="panel-header">
+              <div className="panel-title">
+                <Settings size={20} />
+                <span>Developer Panel</span>
+              </div>
+              <button onClick={() => setIsOpen(false)} className="close-button">
+                <X size={20} />
               </button>
             </div>
 
-            {showAddForm && (
-              <form onSubmit={handleAddCard} className="add-form">
-                <div className="form-group">
-                  <label>Name *</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Category *</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                    className="form-input"
-                  >
-                    <option value="software">Software</option>
-                    <option value="plugin">Plugin</option>
-                    <option value="script">Script</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Description *</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    required
-                    rows={3}
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Icon URL (optional)</label>
-                  <input
-                    type="url"
-                    value={formData.icon}
-                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Link *</label>
-                  <input
-                    type="url"
-                    value={formData.link}
-                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                    required
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-actions">
-                  <button type="submit" disabled={loading} className="btn-primary">
-                    {loading ? 'Adding...' : 'Add Card'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddForm(false)}
-                    className="btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
+            <div className="panel-content">
+              <div className="action-section">
+                <button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className="add-card-button"
+                >
+                  <Plus size={16} />
+                  <span>Add New Card</span>
+                </button>
+              </div>
 
-            <div className="cards-list">
-              <h3>Manage Cards ({cards.length})</h3>
-              <div className="cards-grid">
-                {cards.map(card => (
-                  <div key={card.id} className="card-item">
-                    <div className="card-info">
-                      <h4>{card.name}</h4>
-                      <span className="category">{card.category}</span>
+              {showAddForm && (
+                <div className="add-form-container">
+                  <form onSubmit={handleAddCard} className="add-card-form">
+                    <div className="form-grid">
+                      <div className="form-field">
+                        <label className="field-label">Name *</label>
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          required
+                          className="field-input"
+                          placeholder="Enter card name"
+                        />
+                      </div>
+                      
+                      <div className="form-field">
+                        <label className="field-label">Category *</label>
+                        <select
+                          value={formData.category}
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+                          className="field-input"
+                        >
+                          <option value="software">Software</option>
+                          <option value="plugin">Plugin</option>
+                          <option value="script">Script</option>
+                        </select>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteCard(card.id)}
-                      className="delete-btn"
-                      title="Delete card"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
+
+                    <div className="form-field">
+                      <label className="field-label">Description *</label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        required
+                        rows={3}
+                        className="field-input field-textarea"
+                        placeholder="Enter card description"
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label className="field-label">Icon URL (optional)</label>
+                      <input
+                        type="url"
+                        value={formData.icon}
+                        onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                        className="field-input"
+                        placeholder="https://example.com/icon.png"
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label className="field-label">Link *</label>
+                      <input
+                        type="url"
+                        value={formData.link}
+                        onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                        required
+                        className="field-input"
+                        placeholder="https://example.com"
+                      />
+                    </div>
+
+                    <div className="form-actions">
+                      <button type="submit" disabled={loading} className="submit-button">
+                        {loading ? (
+                          <div className="loading-spinner"></div>
+                        ) : (
+                          <>
+                            <Plus size={16} />
+                            <span>Add Card</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddForm(false)}
+                        className="cancel-button"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              <div className="cards-management">
+                <h3 className="section-title">Manage Cards ({cards.length})</h3>
+                <div className="cards-list">
+                  {cards.map(card => (
+                    <div key={card.id} className="card-item">
+                      <div className="card-info">
+                        <div className="card-name">{card.name}</div>
+                        <div className="card-meta">
+                          <span className={`card-category ${card.category}`}>{card.category}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteCard(card.id)}
+                        className="delete-button"
+                        title="Delete card"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
